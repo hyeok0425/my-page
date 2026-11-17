@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>깜짝이의 성별은? 👶✨ 젠더리빌 빙고</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Jua (귀엽고 둥근 한글 폰트) & Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Tone.js (외부 음원 파일 없이 맑고 귀여운 오르골 BGM 및 폭죽 효과음 생성) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+  <style>
+    :root {
+      --bg-cream: #FFFDF9;
+      --pink-light: #FFE4EC;
+      --pink-main: #FF759F;
+      --pink-dark: #E84A7F;
+      --blue-light: #E1F2FF;
+      --blue-main: #60B2FF;
+      --blue-dark: #2B8AE8;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: var(--bg-cream);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(255, 182, 193, 0.25) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(135, 206, 250, 0.25) 0%, transparent 40%);
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    .font-jua {
+      font-family: 'Jua', sans-serif;
+    }
+
+    /* 3D 카드 플립 애니메이션 */
+    .perspective-1000 {
+      perspective: 1000px;
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-style: preserve-3d;
+    }
+
+    .card-flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      border-radius: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.06);
+    }
+
+    /* 카드 앞면 (물음표 선물상자) */
+    .card-front {
+      background: linear-gradient(145deg, #FFFFFF, #F7F2EB);
+      border: 2.5px solid #EFE6D8;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .card-front:active {
+      transform: scale(0.93);
+    }
+
+    /* 카드 뒷면 (회전된 상태) */
+    .card-back {
+      transform: rotateY(180deg);
+    }
+
+    .card-pink {
+      background: linear-gradient(145deg, #FFF0F5, #FFD6E5);
+      border: 3px solid #FF8FB1;
+      color: #D6336C;
+    }
+
+    .card-blue {
+      background: linear-gradient(145deg, #F0F8FF, #D6ECFF);
+      border: 3px solid #7CC0FF;
+      color: #1C7ED6;
+    }
+
+    /* 빙고 완성 하이라이트 애니메이션 */
+    @keyframes bingoPulse {
+      0%, 100% {
+        transform: rotateY(180deg) scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 117, 159, 0.7);
+      }
+      50% {
+        transform: rotateY(180deg) scale(1.07);
+        box-shadow: 0 0 22px 6px rgba(255, 117, 159, 0.85);
+      }
+    }
+
+    .bingo-winner-card .card-inner {
+      animation: bingoPulse 1.1s infinite ease-in-out;
+    }
+
+    .bingo-winner-card .card-back {
+      background: linear-gradient(145deg, #FF9EBB, #FF6699);
+      border: 3px solid #FFF;
+      color: #FFFFFF;
+    }
+
+    /* 모달 팝업 애니메이션 */
+    @keyframes popIn {
+      0% {
+        opacity: 0;
+        transform: scale(0.75) translateY(20px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .animate-pop-in {
+      animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* 떠다니는 이모지 효과 */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-6px) rotate(4deg); }
+    }
+
+    .animate-float {
+      animation: floatSlow 2.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="min-h-[100dvh] flex flex-col justify-between items-center px-4 py-6 relative overflow-hidden">
+
+  <!-- 꽃가루(Confetti) 및 하트 파티클용 전체 화면 캔버스 -->
+  <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50 w-full h-full"></canvas>
+
+  <!-- 우측 상단 사운드 음소거 토글 버튼 -->
+  <button id="mute-btn" onclick="toggleMute()" aria-label="소리 켜기/끄기" class="fixed top-4 right-4 z-30 w-11 h-11 rounded-full bg-white/95 hover:bg-white border border-amber-200/80 shadow-md flex items-center justify-center text-gray-700 active:scale-90 transition-all">
+    <!-- 소리 켜짐 아이콘 (기본) -->
+    <svg id="icon-sound-on" class="w-5 h-5 text-pink-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+    </svg>
+    <!-- 음소거 아이콘 -->
+    <svg id="icon-sound-off" class="w-5 h-5 text-gray-400 hidden" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+      <path stroke-linecap="round" stroke-linejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+    </svg>
+  </button>
+
+  <!-- 상단 헤더 영역 -->
+  <header class="w-full max-w-sm text-center mt-2 z-10">
+    <div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-amber-200/80 shadow-sm text-xs font-semibold text-amber-700 mb-2">
+      <span>🎀</span>
+      <span>GENDER REVEAL BINGO</span>
+      <span>👑</span>
+    </div>
+    <h1 class="font-jua text-3xl sm:text-4xl text-gray-800 tracking-tight leading-snug">
+      깜짝이의 성별은? <span class="inline-block animate-float">👶✨</span>
+    </h1>
+    <p id="status-message" class="mt-2 text-sm sm:text-base font-medium text-gray-600 bg-white/80 backdrop-blur-sm py-1.5 px-4 rounded-2xl inline-block border border-stone-200/70 shadow-xs transition-all duration-300">
+      카드를 터치해서 <span class="text-pink-500 font-bold">분홍</span> 또는 <span class="text-blue-500 font-bold">파랑</span> 1줄을 완성해보세요!
+    </p>
+  </header>
+
+  <!-- 중앙 3x3 빙고판 영역 -->
+  <main class="w-full max-w-[340px] sm:max-w-[370px] my-auto py-3 z-10">
+    <div class="bg-white/85 backdrop-blur-md p-3.5 sm:p-4 rounded-[2rem] shadow-[0_12px_35px_rgba(0,0,0,0.06)] border border-white">
+      <!-- 3x3 그리드 -->
+      <div id="bingo-grid" class="grid grid-cols-3 gap-2.5 sm:gap-3 aspect-square w-full">
+        <!-- JavaScript로 9개 카드 동적 생성 -->
+      </div>
+    </div>
+
+    <!-- 진행 표시기 (미니 스코어 인디케이터) -->
+    <div class="mt-4 flex items-center justify-center gap-4 text-xs font-semibold text-gray-500">
+      <div class="flex items-center gap-1.5 bg-pink-50/90 px-3.5 py-1.5 rounded-full border border-pink-200/70 text-pink-600 shadow-2xs">
+        <span>💖 공주님</span>
+        <span id="pink-count" class="font-bold text-sm">0</span>
+      </div>
+      <div class="flex items-center gap-1.5 bg-blue-50/90 px-3.5 py-1.5 rounded-full border border-blue-200/70 text-blue-600 shadow-2xs">
+        <span>💙 왕자님</span>
+        <span id="blue-count" class="font-bold text-sm">0</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- 하단 컨트롤 버튼 영역 (다시 하기 단독 버튼으로 깔끔하게 구성) -->
+  <footer class="w-full max-w-[220px] flex items-center justify-center mb-2 z-10">
+    <button onclick="resetGame()" class="w-full py-3 px-5 rounded-2xl bg-white hover:bg-stone-50 active:scale-95 text-gray-700 font-bold text-sm border border-stone-200 shadow-sm transition-all flex items-center justify-center gap-2">
+      <svg class="w-4 h-4 text-pink-500" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      <span>다시 하기</span>
+    </button>
+  </footer>
+
+  <!-- 축하 결과 모달 (분홍색 1빙고 달성 시 등장) -->
+  <div id="celebration-modal" class="fixed inset-0 z-40 hidden items-center justify-center p-5 bg-black/45 backdrop-blur-xs transition-opacity duration-300">
+    <div class="bg-gradient-to-b from-white via-pink-50/95 to-pink-100/95 w-full max-w-xs sm:max-w-sm rounded-[2.2rem] p-6 text-center shadow-2xl border-4 border-white relative animate-pop-in">
+      
+      <!-- 상단 왕관 & 리본 배지 -->
+      <div class="inline-block px-4 py-1 rounded-full bg-pink-500 text-white text-xs font-bold tracking-wider shadow-sm mb-3">
+        IT'S A GIRL! 🎀
+      </div>
+
+      <!-- 아기 공주님 SVG 일러스트 -->
+      <div class="w-28 h-28 mx-auto my-2 bg-white rounded-full flex items-center justify-center shadow-inner border-4 border-pink-200 relative animate-float">
+        <svg viewBox="0 0 120 120" class="w-24 h-24">
+          <!-- 배경 광채 -->
+          <circle cx="60" cy="60" r="52" fill="#FFF0F6"/>
+          <!-- 티아라 왕관 -->
+          <path d="M40 32 L46 20 L60 28 L74 20 L80 32 Z" fill="#FFD43B" stroke="#FAB005" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="60" cy="24" r="2.5" fill="#FF6B6B"/>
+          <!-- 머리띠 리본 -->
+          <path d="M35 42 C25 32, 25 52, 35 44 Z" fill="#FF759F"/>
+          <path d="M85 42 C95 32, 95 52, 85 44 Z" fill="#FF759F"/>
+          <!-- 얼굴 -->
+          <circle cx="60" cy="64" r="28" fill="#FFE8D6"/>
+          <!-- 앞머리 -->
+          <path d="M33 58 C35 38, 85 38, 87 58 C80 48, 68 48, 60 54 C52 48, 40 48, 33 58 Z" fill="#5C4033"/>
+          <!-- 감은 웃는 눈 -->
+          <path d="M45 63 Q50 58 55 63" fill="none" stroke="#4A3525" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M65 63 Q70 58 75 63" fill="none" stroke="#4A3525" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- 발그레한 볼터치 -->
+          <ellipse cx="43" cy="70" rx="5" ry="3" fill="#FF8FA3" opacity="0.65"/>
+          <ellipse cx="77" cy="70" rx="5" ry="3" fill="#FF8FA3" opacity="0.65"/>
+          <!-- 귀여운 미소 -->
+          <path d="M54 73 Q60 80 66 73" fill="none" stroke="#E84A7F" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- 턱받이/옷 -->
+          <path d="M38 90 Q60 105 82 90 L86 105 L34 105 Z" fill="#FF8FB1"/>
+        </svg>
+        <span class="absolute -top-1 -right-1 text-2xl">💖</span>
+        <span class="absolute -bottom-1 -left-1 text-2xl">🌸</span>
+      </div>
+
+      <!-- 메인 축하 문구 -->
+      <h2 class="font-jua text-3xl sm:text-4xl text-pink-600 mt-3 leading-tight">
+        축하합니다!<br/>
+        <span class="text-rose-500">딸입니다!</span> 🎀💖
+      </h2>
+
+      <p class="mt-3 text-sm text-gray-600 leading-relaxed font-medium">
+        사랑스러운 <strong class="text-pink-600">공주님 깜짝이</strong>가 찾아왔어요!<br/>
+        함께 축복해 주세요 ✨
+      </p>
+
+      <!-- 모달 내부 버튼 -->
+      <div class="mt-5">
+        <button onclick="closeModal()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-base shadow-lg shadow-pink-300/60 active:scale-95 transition-transform">
+          빙고판 다시 보기 ✨
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * 깜짝이 젠더리빌 3x3 빙고 게임 로직
+     * 1. 스마트 긴장감 알고리즘:
+     *    - 6번째 칸 오픈까지는 파란색과 분홍색이 팽팽하게 번갈아 나오며 긴장감을 유지합니다.
+     *    - 7~8번째 칸 즈음에서 극적으로 분홍색 1줄(가로/세로/대각선)이 완성됩니다.
+     * 2. 사운드 시스템 (Tone.js):
+     *    - 모바일 브라우저 터치 시 오디오 컨텍스트를 즉시 잠금 해제합니다.
+     *    - 귀엽고 잔잔한 오르골(Music Box) 스타일의 BGM이 반복 재생됩니다.
+     *    - 빙고 완성 시 화려한 팡파르와 폭죽 터지는 효과음이 재생됩니다.
+     */
+
+    // 3x3 빙고 가능한 모든 승리 라인 (8가지: 가로 3, 세로 3, 대각선 2)
+    const WIN_LINES = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8], // 가로
+      [0, 3, 6], [1, 4, 7], [2, 5, 8], // 세로
+      [0, 4, 8], [2, 4, 6]             // 대각선
+    ];
+
+    // 게임 상태 변수
+    let board = Array(9).fill(null); // null, 'pink', 'blue'
+    let revealedCount = 0;
+    let isGameOver = false;
+    let winningLine = [];
+    let audioInitialized = false;
+    let isMuted = false;
+    let bgmPlaying = false;
+    let isAudioStarting = false;
+
+    // 효과음 및 오르골 BGM 합성기 (Tone.js)
+    let popSynth, fanfareSynth, musicBoxSynth, musicBoxBassSynth, fireworkNoiseSynth, fireworkBoomSynth;
+    let bgmLoop = null;
+
+    async function initAudio() {
+      // 모바일 브라우저(iOS Safari / 카카오톡 인앱) 오디오 컨텍스트 즉시 잠금 해제
+      if (typeof Tone !== 'undefined' && Tone.context && Tone.context.state !== 'running') {
+        try {
+          await Tone.start();
+          await Tone.context.resume();
+        } catch (e) {}
+      }
+
+      if (audioInitialized || isAudioStarting) return;
+      isAudioStarting = true;
+
+      try {
+        // 1. 카드 뒤집기 맑은 벨 효과음
+        popSynth = new Tone.Synth({
+          oscillator: { type: "sine" },
+          envelope: { attack: 0.01, decay: 0.15, sustain: 0, release: 0.15 }
+        }).toDestination();
+        popSynth.volume.value = -3;
+
+        // 2. 축하 팡파르 합성기
+        fanfareSynth = new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type: "triangle" },
+          envelope: { attack: 0.02, decay: 0.35, sustain: 0.25, release: 0.8 }
+        }).toDestination();
+        fanfareSynth.volume.value = 0;
+
+        // 3. 폭죽 효과음 (쏘아올리는 소리 + 팡! 터지는 소리)
+        fireworkNoiseSynth = new Tone.NoiseSynth({
+          noise: { type: "pink" },
+          envelope: { attack: 0.01, decay: 0.45, sustain: 0, release: 0.25 }
+        }).toDestination();
+        fireworkNoiseSynth.volume.value = -1;
+
+        fireworkBoomSynth = new Tone.MembraneSynth({
+          pitchDecay: 0.08,
+          octaves: 4,
+          oscillator: { type: "sine" },
+          envelope: { attack: 0.005, decay: 0.4, sustain: 0, release: 0.3 }
+        }).toDestination();
+        fireworkBoomSynth.volume.value = 2;
+
+        // 4. 귀엽고 잔잔한 오르골(Music Box) 스타일 BGM
+        musicBoxSynth = new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type: "sine" },
+          envelope: {
+            attack: 0.015,
+            decay: 0.55,
+            sustain: 0.02,
+            release: 0.7
+          }
+        }).toDestination();
+        musicBoxSynth.volume.value = -7;
+
+        musicBoxBassSynth = new Tone.Synth({
+          oscillator: { type: "sine" },
+          envelope: {
+            attack: 0.04,
+            decay: 0.7,
+            sustain: 0.05,
+            release: 0.8
+          }
+        }).toDestination();
+        musicBoxBassSynth.volume.value = -14;
+
+        setupMusicBoxSequence();
+        audioInitialized = true;
+        isAudioStarting = false;
+
+        if (!isGameOver && !isMuted) {
+          startBgm();
+        }
+      } catch (e) {
+        isAudioStarting = false;
+        console.warn("Audio init skipped:", e);
+      }
+    }
+
+    // 화면의 첫 터치/클릭 시 모바일 오디오 잠금 즉시 해제
+    ['pointerdown', 'touchstart', 'click'].forEach(evt => {
+      document.addEventListener(evt, () => {
+        if (!audioInitialized) {
+          initAudio();
+        } else if (typeof Tone !== 'undefined' && Tone.context && Tone.context.state !== 'running') {
+          Tone.context.resume();
+        }
+      }, { passive: true });
+    });
+
+    // 포근하고 귀여운 오르골 자장가/왈츠풍 멜로디 시퀀스 (32스텝 루프)
+    function setupMusicBoxSequence() {
+      Tone.Transport.bpm.value = 104; // 차분하고 아기자기한 오르골 템포
+
+      const melodyPattern = [
+        "E5", null, "G5", null, "C6", null, "B5", "G5",
+        "A5", null, "F5", null, "G5", null, null, null,
+        "F5", null, "A5", null, "D6", null, "C6", "A5",
+        "B5", null, "G5", null, "C6", null, null, null
+      ];
+
+      const bassPattern = [
+        "C4", null, null, "G4", null, null, "E4", null,
+        "F4", null, null, "C4", null, null, "E4", null,
+        "D4", null, null, "A4", null, null, "F4", null,
+        "G4", null, null, "B4", "C4", null, null, null
+      ];
+
+      let step = 0;
+      bgmLoop = new Tone.Loop((time) => {
+        if (isMuted || isGameOver) return;
+
+        const mNote = melodyPattern[step];
+        const bNote = bassPattern[step];
+
+        if (mNote) musicBoxSynth.triggerAttackRelease(mNote, "4n", time);
+        if (bNote) musicBoxBassSynth.triggerAttackRelease(bNote, "2n", time);
+
+        step = (step + 1) % 32;
+      }, "8n");
+    }
+
+    function startBgm() {
+      if (!audioInitialized || bgmPlaying) return;
+      Tone.Transport.start();
+      bgmLoop.start(0);
+      bgmPlaying = true;
+    }
+
+    function stopBgm() {
+      if (!bgmPlaying) return;
+      if (bgmLoop) bgmLoop.stop();
+      Tone.Transport.stop();
+      bgmPlaying = false;
+    }
+
+    // 음소거 토글 기능
+    async function toggleMute() {
+      if (!audioInitialized) {
+        await initAudio();
+      } else if (typeof Tone !== 'undefined' && Tone.context && Tone.context.state !== 'running') {
+        await Tone.context.resume();
+      }
+
+      isMuted = !isMuted;
+      Tone.Destination.mute = isMuted;
+
+      const iconOn = document.getElementById('icon-sound-on');
+      const iconOff = document.getElementById('icon-sound-off');
+
+      if (isMuted) {
+        iconOn.classList.add('hidden');
+        iconOff.classList.remove('hidden');
+      } else {
+        iconOn.classList.remove('hidden');
+        iconOff.classList.add('hidden');
+        if (!isGameOver && !bgmPlaying) startBgm();
+      }
+    }
+
+    function playFlipSound(color) {
+      if (!audioInitialized || isMuted) return;
+      try {
+        if (color === 'pink') {
+          popSynth.triggerAttackRelease("A5", "16n");
+        } else {
+          popSynth.triggerAttackRelease("E5", "16n");
+        }
+      } catch (e) {}
+    }
+
+    // 축하 팡파르 + 폭죽 연속 터지는 효과음
+    function playWinAndFireworksSound() {
+      if (!audioInitialized || isMuted) return;
+      try {
+        const now = Tone.now();
+
+        // 1. 화려한 승리 팡파르
+        fanfareSynth.triggerAttackRelease(["C5", "E5", "G5"], "8n", now);
+        fanfareSynth.triggerAttackRelease(["D5", "F#5", "A5"], "8n", now + 0.14);
+        fanfareSynth.triggerAttackRelease(["E5", "G#5", "B5"], "8n", now + 0.28);
+        fanfareSynth.triggerAttackRelease(["C6", "E6", "G6"], "2n", now + 0.42);
+
+        // 2. 밤하늘에 폭죽이 연속으로 팡! 팡! 터지는 효과음
+        const fireworkTimes = [0.2, 0.65, 1.1, 1.55, 2.0];
+        fireworkTimes.forEach((offset, idx) => {
+          fireworkBoomSynth.triggerAttackRelease(idx % 2 === 0 ? "C2" : "G1", "8n", now + offset);
+          fireworkNoiseSynth.triggerAttackRelease("8n", now + offset + 0.03);
+        });
+      } catch (e) {}
+    }
+
+    // 특정 보드 상태에서 특정 색상의 완성된 빙고 줄 찾기
+    function getCompletedLines(testBoard, color) {
+      return WIN_LINES.filter(line => line.every(idx => testBoard[idx] === color));
+    }
+
+    // 스마트 동적 색상 결정 알고리즘
+    function decideCardColor(index) {
+      const pinkCount = board.filter(c => c === 'pink').length;
+      const blueCount = board.filter(c => c === 'blue').length;
+
+      // 가상의 보드 테스트
+      const testPinkBoard = [...board];
+      testPinkBoard[index] = 'pink';
+      const pinkLinesIfChosen = getCompletedLines(testPinkBoard, 'pink');
+
+      const testBlueBoard = [...board];
+      testBlueBoard[index] = 'blue';
+      const blueLinesIfChosen = getCompletedLines(testBlueBoard, 'blue');
+
+      // 규칙 1: 파란색은 절대 빙고(3줄)가 완성되면 안 됨
+      const canChooseBlue = (blueLinesIfChosen.length === 0) && (blueCount < 5);
+
+      // 규칙 2: 6번째 칸까지는 파란색과 분홍색이 번갈아 나오며 팽팽한 긴장감 유지
+      if (revealedCount < 6) {
+        if (pinkLinesIfChosen.length > 0) {
+          // 너무 일찍 분홍색 빙고가 완성되지 않도록 파란색 우선 배정
+          if (canChooseBlue) return 'blue';
+        }
+        if (pinkCount > blueCount && canChooseBlue) {
+          return 'blue';
+        }
+        if (blueCount > pinkCount && pinkLinesIfChosen.length === 0) {
+          return 'pink';
+        }
+        if (pinkLinesIfChosen.length === 0 && canChooseBlue) {
+          return Math.random() < 0.5 ? 'pink' : 'blue';
+        }
+        return pinkLinesIfChosen.length === 0 ? 'pink' : 'blue';
+      }
+
+      // 규칙 3: 7~8번째 칸 클라이맥스 구간에서 극적으로 분홍색 1빙고 완성!
+      if (pinkLinesIfChosen.length > 0) {
+        return 'pink';
+      }
+
+      if (pinkCount <= 4) {
+        return 'pink';
+      }
+
+      return canChooseBlue ? 'blue' : 'pink';
+    }
+
+    // 빙고판 초기 렌더링
+    function renderBoard() {
+      const grid = document.getElementById('bingo-grid');
+      grid.innerHTML = '';
+
+      for (let i = 0; i < 9; i++) {
+        const cardWrapper = document.createElement('div');
+        cardWrapper.className = 'perspective-1000 w-full h-full cursor-pointer';
+        cardWrapper.id = `card-${i}`;
+        cardWrapper.onclick = () => handleCardClick(i);
+
+        cardWrapper.innerHTML = `
+          <div class="card-inner">
+            <!-- 앞면 (중립 파스텔 카드) -->
+            <div class="card-front">
+              <span class="text-2xl sm:text-3xl mb-0.5 opacity-85">🎁</span>
+              <span class="font-jua text-lg sm:text-xl text-amber-700/70">?</span>
+            </div>
+            <!-- 뒷면 (공개 후 색상 적용) -->
+            <div class="card-back" id="card-back-${i}">
+            </div>
+          </div>
+        `;
+
+        grid.appendChild(cardWrapper);
+      }
+      updateCounters();
+    }
+
+    // 카드 클릭/터치 핸들러
+    async function handleCardClick(index) {
+      if (board[index] !== null || isGameOver) return;
+
+      await initAudio();
+
+      const chosenColor = decideCardColor(index);
+      board[index] = chosenColor;
+      revealedCount++;
+
+      const cardEl = document.getElementById(`card-${index}`);
+      const cardBackEl = document.getElementById(`card-back-${index}`);
+
+      if (chosenColor === 'pink') {
+        cardBackEl.classList.add('card-pink');
+        cardBackEl.innerHTML = `
+          <span class="text-3xl sm:text-4xl mb-1 drop-shadow-xs">👧</span>
+          <span class="font-jua text-sm sm:text-base tracking-wide">공주님 💖</span>
+        `;
+      } else {
+        cardBackEl.classList.add('card-blue');
+        cardBackEl.innerHTML = `
+          <span class="text-3xl sm:text-4xl mb-1 drop-shadow-xs">👶</span>
+          <span class="font-jua text-sm sm:text-base tracking-wide">왕자님 💙</span>
+        `;
+      }
+
+      cardEl.classList.add('card-flipped');
+      playFlipSound(chosenColor);
+      updateCounters();
+
+      // 분홍색 1빙고 달성 여부 확인
+      const completedPinkLines = getCompletedLines(board, 'pink');
+      if (completedPinkLines.length > 0) {
+        isGameOver = true;
+        winningLine = completedPinkLines[0];
+        triggerCelebration(winningLine);
+      } else {
+        updateTensionMessage();
+      }
+    }
+
+    // 진행 상황에 따른 긴장감 안내 문구 업데이트
+    function updateTensionMessage() {
+      const statusEl = document.getElementById('status-message');
+      const pinkCount = board.filter(c => c === 'pink').length;
+      const blueCount = board.filter(c => c === 'blue').length;
+
+      if (revealedCount >= 6) {
+        statusEl.innerHTML = `두근두근! 💓 <span class="text-rose-500 font-bold">마지막 한 칸</span>에 깜짝이의 운명이 달렸어요!`;
+        statusEl.classList.add('border-pink-300', 'bg-pink-50/90');
+      } else if (pinkCount >= 2 && blueCount >= 2) {
+        statusEl.innerHTML = `막상막하! 깜짝이는 <span class="text-pink-500 font-bold">공주님</span>일까요, <span class="text-blue-500 font-bold">왕자님</span>일까요? ✨`;
+      } else {
+        statusEl.innerHTML = `계속해서 카드를 열어 1빙고를 완성해주세요! (${revealedCount}/9)`;
+      }
+    }
+
+    // 카운터 업데이트
+    function updateCounters() {
+      const pinkCount = board.filter(c => c === 'pink').length;
+      const blueCount = board.filter(c => c === 'blue').length;
+      document.getElementById('pink-count').textContent = pinkCount;
+      document.getElementById('blue-count').textContent = blueCount;
+    }
+
+    // 분홍색 1빙고 달성 축하 연출
+    function triggerCelebration(line) {
+      stopBgm();
+
+      const statusEl = document.getElementById('status-message');
+      statusEl.innerHTML = `🎉 <span class="text-pink-600 font-bold">분홍색 빙고 완성! 축하합니다! 딸입니다!</span> 🎀`;
+      statusEl.className = "mt-2 text-sm sm:text-base font-bold text-pink-600 bg-pink-100/90 py-1.5 px-4 rounded-2xl inline-block border border-pink-300 shadow-sm";
+
+      // 1. 빙고 라인 카드 하이라이트 & 팡파르/폭죽 효과음 & 꽃가루 시작
+      setTimeout(() => {
+        line.forEach(idx => {
+          const winCard = document.getElementById(`card-${idx}`);
+          if (winCard) winCard.classList.add('bingo-winner-card');
+        });
+        playWinAndFireworksSound();
+        startConfetti();
+      }, 350);
+
+      // 2. 화려한 축하 팝업 모달 표시
+      setTimeout(() => {
+        const modal = document.getElementById('celebration-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        if (audioInitialized && !isMuted) {
+          const now = Tone.now();
+          fireworkBoomSynth.triggerAttackRelease("C2", "8n", now);
+          fireworkNoiseSynth.triggerAttackRelease("4n", now + 0.02);
+        }
+      }, 1150);
+    }
+
+    // 축하 모달 닫기
+    function closeModal() {
+      const modal = document.getElementById('celebration-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // 게임 초기화 (다시 하기)
+    function resetGame() {
+      board = Array(9).fill(null);
+      revealedCount = 0;
+      isGameOver = false;
+      winningLine = [];
+      stopConfetti();
+      closeModal();
+
+      const statusEl = document.getElementById('status-message');
+      statusEl.className = "mt-2 text-sm sm:text-base font-medium text-gray-600 bg-white/80 backdrop-blur-sm py-1.5 px-4 rounded-2xl inline-block border border-stone-200/70 shadow-xs transition-all duration-300";
+      statusEl.innerHTML = `카드를 터치해서 <span class="text-pink-500 font-bold">분홍</span> 또는 <span class="text-blue-500 font-bold">파랑</span> 1줄을 완성해보세요!`;
+
+      renderBoard();
+      if (audioInitialized && !isMuted) {
+        startBgm();
+      }
+    }
+
+    /* =========================================================================
+       분홍색 꽃가루(Confetti) & 하트 파티클 Canvas 애니메이션 엔진
+       ========================================================================= */
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let animationId = null;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const CONFETTI_COLORS = ['#FF759F', '#FF9EBB', '#FFC2D1', '#FFD43B', '#FF4D8D', '#FFFFFF'];
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = -20 - Math.random() * canvas.height * 0.5;
+        this.size = Math.random() * 9 + 6;
+        this.color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+        this.speedY = Math.random() * 3 + 2.2;
+        this.speedX = (Math.random() - 0.5) * 2.5;
+        this.rotation = Math.random() * 360;
+        this.rotationSpeed = (Math.random() - 0.5) * 8;
+        this.isHeart = Math.random() < 0.35;
+      }
+
+      update() {
+        this.y += this.speedY;
+        this.x += this.speedX + Math.sin(this.y * 0.02) * 0.8;
+        this.rotation += this.rotationSpeed;
+
+        if (this.y > canvas.height + 20) {
+          this.y = -20;
+          this.x = Math.random() * canvas.width;
+        }
+      }
+
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate((this.rotation * Math.PI) / 180);
+        ctx.fillStyle = this.color;
+
+        if (this.isHeart) {
+          const s = this.size * 0.65;
+          ctx.beginPath();
+          ctx.moveTo(0, s / 4);
+          ctx.bezierCurveTo(0, 0, -s, 0, -s, s / 2);
+          ctx.bezierCurveTo(-s, s, 0, s * 1.4, 0, s * 1.7);
+          ctx.bezierCurveTo(0, s * 1.4, s, s, s, s / 2);
+          ctx.bezierCurveTo(s, 0, 0, 0, 0, s / 4);
+          ctx.fill();
+        } else {
+          ctx.fillRect(-this.size / 2, -this.size / 4, this.size, this.size / 2);
+        }
+
+        ctx.restore();
+      }
+    }
+
+    function startConfetti() {
+      stopConfetti();
+      particles = [];
+      for (let i = 0; i < 95; i++) {
+        particles.push(new Particle());
+      }
+      animateConfetti();
+    }
+
+    function animateConfetti() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      animationId = requestAnimationFrame(animateConfetti);
+    }
+
+    function stopConfetti() {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // 페이지 로드 시 빙고판 생성
+    window.onload = function () {
+      renderBoard();
+    };
+  </script>
+</body>
+</html>
